@@ -1,12 +1,58 @@
 module jLookup
 
+export readRBFarray, test_readRBFarray
+export rbfArrayInterp
+
 ## Copyright (C) 2017 Dennis
 
 ## Author: Dennis <Dennis@DESKTOP-TRI7NMC>
 ## Created: 2017-12-12
 ## Converted to julia, 2020/4/27
 
-function RBFarrayInterp(A, xi, yi, xdelta, ydelta, xmin, ymin)
+## Author: Dennis <Dennis@DESKTOP-TRI7NMC>
+## Created: 2017-12-08
+
+function readRBFarray(dirin, sensor)
+
+    f = dirin * "_RBFarrayS" * string(sensor) * ".txt"
+    fid = open(f, "r")
+    P = readlines(fid)
+    close(fid)
+
+    sensor = parse.(Float64, split(P[2])[2])
+    xdelta = parse.(Float64, split(P[3])[2])
+    ydelta = parse.(Float64, split(P[4])[2])
+    nrows = parse.(Int64, split(P[5])[2])
+    ncols = parse.(Int64, split(P[6])[2])
+
+    A = Array{Float64, 2}(undef, (nrows, ncols))
+    k = 7  #array starts with line 7
+    for i in 1:nrows
+        for j in 1:ncols
+            A[i,j] = parse.(Float64, split(P[k])[1])
+            k += 1
+        end
+    end
+
+    xmin = minimum(A)
+    #ymin = minimum(minimum(A, dims=1), dims=2)
+    ymin = minimum(A)
+
+    return (A, xdelta, ydelta, xmin, ymin)
+end #endfunction
+
+
+function test_readRBFarray(dirin, sensor)
+    (A, xdelta, ydelta, xmin, ymin) = readRBFarray(dirin, sensor)
+    println("xdelta: ", xdelta)
+    println("ydelta: ", ydelta)
+    println("xmin: ", xmin)
+    println("ymin: ", ymin)
+    A
+end
+
+
+function rbfArrayInterp(A, xi, yi, xdelta, ydelta, xmin, ymin)
 #Lookup and bilinear interpolation of RBF array A.
 
 #The closest i are floor((x - xmin)/xdelta) + 1 and ceil((x - xmin)/xdelta) + 1
