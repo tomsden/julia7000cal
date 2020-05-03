@@ -32,12 +32,12 @@ end
 
 mutable struct Point
 #Define a point having coordinates x, y, z. Returns a column vector.
-    vec
-    #vec::SVector  #rev. for speed, 2020/5/2
+    #vec
+    vec::SVector  #rev. for speed, 2020/5/2
     #function Point(x::Float64, y::Float64, z::Float64)  #types added 2019/12/25 to aid compilation
     function Point(x, y, z)  #types removed 2020/4/10 to allow Dual numbers (for automatic differentiation).
-        vec = [x, y, z]
-        #vec = SVector(x, y, z)  #rev. for speed, 2020/5/2
+        #vec = [x, y, z]
+        vec = SVector(x, y, z)  #rev. for speed, 2020/5/2
         return new(vec)
     end
 end
@@ -46,16 +46,18 @@ function getindex(pt::Point,i)
 end
 
 " Point(vec) constructs a point given a 3-vector"
-function Point(vec)
-#function Point(vec::SVector)  #revised for speed, 2020/5/2
+#function Point(vec)
+function Point(vec::SVector)  #revised for speed, 2020/5/2
   return Point(vec[1], vec[2], vec[3])
 end
 
 mutable struct Direc
 #Define a direction as a unit (column) vector.
-    vec
+    #vec
+    vec::SVector  #revised for speed, 2020/5/3
     function Direc(u,v,w)
-        vec = [u,v,w]/norm([u,v,w])
+        v = [u,v,w]/norm([u,v,w])
+        vec = SVector(v[1], v[2], v[3])  #revised for speed, 2020/5/3
         return new(vec)
     end
 end
