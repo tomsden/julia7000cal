@@ -1,7 +1,9 @@
 module jLookup
+#Look up an RBF value from an RBF array.
 
+using jConstants, jRBF_rbfe, jRead
 export readRBFarray, test_readRBFarray
-export rbfArrayInterp
+export rbfArrayInterp, test_rbfArrayInterp
 
 ## Copyright (C) 2017 Dennis
 
@@ -34,9 +36,8 @@ function readRBFarray(dirin, sensor)
         end
     end
 
-    xmin = minimum(A)
-    #ymin = minimum(minimum(A, dims=1), dims=2)
-    ymin = minimum(A)
+    xmin = 1
+    ymin = -CNORM()/2  #normally -34/2 = -17
 
     return (A, xdelta, ydelta, xmin, ymin)
 end #endfunction
@@ -58,15 +59,15 @@ function rbfArrayInterp(A, xi, yi, xdelta, ydelta, xmin, ymin)
 #The closest i are floor((x - xmin)/xdelta) + 1 and ceil((x - xmin)/xdelta) + 1
 #The closest j are floor((y - ymin)/ydelta) + 1 and ceil((y - ymin)/ydelta) + 1
 
-  i = floor((xi - xmin)/xdelta) + 1;
-  j = floor((yi - ymin)/ydelta) + 1;
+  i = floor( Int64, (xi - xmin)/xdelta ) + 1;
+  j = floor( Int64, (yi - ymin)/ydelta ) + 1;
 
   x = xi - (xmin + (i-1)*xdelta);
   x = x/xdelta; #normalize (0-1)
   y = yi - (ymin + (j-1)*ydelta);
   y = y/ydelta; #normalize (0-1)
 
-  zi = A(i,j)*(1-x)*(1-y) + A(i+1,j)*x*(1-y) + A(i,j+1)*(1-x)*y + A(i+1,j+1)*x*y;
+  zi = A[i,j]*(1-x)*(1-y) + A[i+1,j]*x*(1-y) + A[i,j+1]*(1-x)*y + A[i+1,j+1]*x*y;
 
   #Uncomment for debugging.
   #[A(i,j), A(i+1,j), A(i,j+1), A(i+1,j+1)]
@@ -78,5 +79,31 @@ function rbfArrayInterp(A, xi, yi, xdelta, ydelta, xmin, ymin)
 
   return (zi, i, j, x1, y1)
 end #endfunction
+
+function test_rbfArrayInterp(dirin, sensor)
+
+    #Get an RBF array for the test.
+    (A, xdelta, ydelta, xmin, ymin) = readRBFarray(dirin, sensor)
+
+    #Calculate the RBF basis function approximation for this block.
+    bfa = createRBF(dirin, sensor)  #uses default Nv
+
+    #Read the block parameters (to get x0)
+    (sx,sy,sz,su,sv,sw,gu,gv,gw,ccdx,ccdy,ccdz,ccdu,ccdv,ccdw,flen,x0,tglass,nglass) =
+        P1readparameters(dirin,sensor)
+
+    xcen = x0
+    ycen = 0.
+    for i=1:10
+        xi = Float64(rand(1:2048))
+        yi = Float64(rand(-17:17))
+        c = (xi - xcen)*MM_PER_PIXEL()
+        d = (yi - ycen);   #(already in mm
+        fe = bfa([c d])
+        (zi, i, j, x1, y1) = rbfArrayInterp(A, xi, yi, xdelta, ydelta, xmin, ymin)
+        println("RBFerr: ", fe[1] - zi)
+    end
+
+end #endfunction test_rbfArrayInterp
 
 end #endmodule
